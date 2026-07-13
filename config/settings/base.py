@@ -42,10 +42,10 @@ INSTALLED_APPS = [
     'corsheaders',
 
     #Apps inside project
-    'core'
-    'links'
-    'users'
-    'analytics'
+    'core',
+    'links',
+    'users',
+    'analytics',
 ]
 
 MIDDLEWARE = [
@@ -64,7 +64,7 @@ ROOT_URLCONF = 'config.urls'
 import os
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 TEMPLATES = [
     {
