@@ -5,6 +5,10 @@ from .models import Link
 from analytics.models import Click
 from links.utils import RESERVED_IDENTIFIERS
 
+from rest_framework import viewsets, permissions
+from rest_framework.response import Response
+
+from .serializers import URLSerializer, URLCreateSerializer, URLListSerializer
 
 def redirect_link(request, identifier: str):
     """
@@ -54,3 +58,40 @@ def redirect_link(request, identifier: str):
 
     # Redirect to original URL
     return HttpResponseRedirect(link.original_url)
+
+class URLViewSet(viewsets.ModelViewSet):
+    """
+    REST API for short URLs.
+
+    Endpoints:
+    - GET    /api/urls/           → list (URLListSerializer)
+    - POST   /api/urls/           → create (URLCreateSerializer)
+    - GET    /api/urls/{id}/      → retrieve (URLSerializer)
+    - PUT    /api/urls/{id}/      → update (URLSerializer)
+    - PATCH  /api/urls/{id}/      → partial_update (URLSerializer)
+    - DELETE /api/urls/{id}/      → destroy
+    """
+    queryset = Link.objects.select_related('owner').all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        """
+        Choose serializer based on action.
+
+        - list    → URLListSerializer (compact)
+        - create  → URLCreateSerializer (simple input)
+        - others  → URLSerializer (full detail)
+        """
+        if self.action == 'list':
+            return URLListSerializer
+        if self.action == 'create':
+            return URLCreateSerializer
+        return URLSerializer
+
+    def perform_create(self, serializer):
+        """
+        Hook called after serializer.is_valid(), before saving.
+
+        We pass the owner into serializer.create() via save().
+        """
+        serializer.save(owner=self.request.user)
