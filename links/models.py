@@ -19,11 +19,12 @@ class Link(models.Model):
 
     # Our generated short code (Base62)
     short_code = models.CharField(
-        max_length=16,
-        unique=True,
-        db_index=True,
-        blank=True,
-        help_text='Automatically generated Base62 short code.'
+    max_length=16,
+    unique=True,
+    db_index=True,
+    null=True,
+    blank=True,
+    help_text='Automatically generated Base62 short code.'
     )
 
     # Optional custom alias chosen by user

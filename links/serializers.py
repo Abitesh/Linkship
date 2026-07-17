@@ -91,13 +91,7 @@ class URLCreateSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        """
-        Create a Link using the service layer.
-
-        The owner comes from the view (request.user),
-        provided via serializer.save(owner=...).
-        """
-        owner = self.context['owner']
+        owner = validated_data.pop('owner')
 
         original_url = validated_data.get('original_url')
         custom_alias = validated_data.get('custom_alias') or None

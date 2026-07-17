@@ -7,7 +7,7 @@ from .utils import (
     generate_short_code,
 )
 
-
+  
 def create_short_link(*, owner, original_url: str, custom_alias: str | None = None, expires_at=None) -> Link:
     """
     Create a new short link safely.
@@ -30,12 +30,11 @@ def create_short_link(*, owner, original_url: str, custom_alias: str | None = No
             original_url=validated_url,
             custom_alias=normalized_alias,
             expires_at=expires_at,
+            short_code=None,
         )
 
-        if not normalized_alias:
-            # Generate short_code from link.id and ensure uniqueness
-            short_code = generate_short_code(link.id)
-            link.short_code = short_code
-            link.save(update_fields=['short_code'])
+        short_code = generate_short_code(link.id)
+        link.short_code = short_code
+        link.save(update_fields=['short_code'])
 
         return link
