@@ -172,3 +172,4 @@ class URLViewSet(viewsets.ModelViewSet):
             'top_browsers': list(by_browser),
         }
         return Response(data)
+    

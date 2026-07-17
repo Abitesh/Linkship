@@ -1,107 +1,49 @@
-from django.utils import timezone
-from rest_framework import serializers
+from django.contrib.auth import get_user_model
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Link
-from .services import create_short_link
+from .serializers import RegisterSerializer, UserSerializer
+
+User = get_user_model()
 
 
-class URLSerializer(serializers.ModelSerializer):
+def get_tokens_for_user(user: User) -> dict:
     """
-    Full detail serializer for a single Link.
-
-    Used for retrieve and update endpoints.
+    Helper: generate refresh + access tokens for a given user.
     """
-    full_short_url = serializers.SerializerMethodField()
-    is_expired = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Link
-        fields = [
-            'id',
-            'owner',
-            'original_url',
-            'short_code',
-            'custom_alias',
-            'created_at',
-            'expires_at',
-            'is_active',
-            'click_count',
-            'full_short_url',
-            'is_expired',
-        ]
-        read_only_fields = [
-            'id',
-            'owner',
-            'short_code',
-            'created_at',
-            'click_count',
-            'full_short_url',
-            'is_expired',
-        ]
-
-    def get_full_short_url(self, obj: Link) -> str:
-        return obj.get_full_short_url()
-
-    def get_is_expired(self, obj: Link) -> bool:
-        return obj.is_expired()
+    refresh = RefreshToken.for_user(user)  # SimpleJWT helper[web:223][web:229]
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
 
 
-class URLListSerializer(serializers.ModelSerializer):
+class RegisterView(APIView):
     """
-    Compact serializer used for list view.
+    POST /api/auth/register/
+
+    Registers a new user and returns:
+    - user data
+    - JWT access + refresh tokens
     """
-    full_short_url = serializers.SerializerMethodField()
 
-    class Meta:
-        model = Link
-        fields = [
-            'id',
-            'short_code',
-            'custom_alias',
-            'full_short_url',
-            'click_count',
-            'created_at',
-            'expires_at',
-            'is_active',
-        ]
+    permission_classes = [AllowAny]
 
-    def get_full_short_url(self, obj: Link) -> str:
-        return obj.get_full_short_url()
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
 
+        user_data = UserSerializer(user).data
+        tokens = get_tokens_for_user(user)
 
-class URLCreateSerializer(serializers.Serializer):
-    """
-    Serializer for creating short URLs.
-
-    Uses service layer to handle:
-    - URL validation
-    - alias validation
-    - short code generation
-    - collision handling
-    """
-    original_url = serializers.CharField()
-    custom_alias = serializers.CharField(required=False, allow_blank=True)
-    expires_at = serializers.DateTimeField(required=False, allow_null=True)
-
-    def validate(self, attrs):
-        """
-        Cross-field validation hook if needed later.
-        For now we just pass through.
-        """
-        return attrs
-
-    def create(self, validated_data):
-        owner = validated_data.pop('owner')
-        original_url = validated_data.get('original_url')
-        custom_alias = validated_data.get('custom_alias') or None
-        expires_at = validated_data.get('expires_at')
-
-        try:
-            return create_short_link(
-                owner=owner,
-                original_url=original_url,
-                custom_alias=custom_alias,
-                expires_at=expires_at,
-            )
-        except ValueError as exc:
-            raise serializers.ValidationError({'detail': str(exc)})
+        return Response(
+            {
+                'user': user_data,
+                'tokens': tokens,
+            },
+            status=status.HTTP_201_CREATED,
+        )
