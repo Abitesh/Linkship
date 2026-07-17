@@ -92,15 +92,16 @@ class URLCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         owner = validated_data.pop('owner')
-
         original_url = validated_data.get('original_url')
         custom_alias = validated_data.get('custom_alias') or None
         expires_at = validated_data.get('expires_at')
 
-        link = create_short_link(
-            owner=owner,
-            original_url=original_url,
-            custom_alias=custom_alias,
-            expires_at=expires_at,
-        )
-        return link
+        try:
+            return create_short_link(
+                owner=owner,
+                original_url=original_url,
+                custom_alias=custom_alias,
+                expires_at=expires_at,
+            )
+        except ValueError as exc:
+            raise serializers.ValidationError({'detail': str(exc)})

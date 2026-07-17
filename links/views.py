@@ -4,11 +4,17 @@ from django.utils import timezone
 from .models import Link
 from analytics.models import Click
 from links.utils import RESERVED_IDENTIFIERS
+from .serializers import URLSerializer, URLCreateSerializer, URLListSerializer
 
+from django.db.models import Count
+from django.db.models.functions import TruncDate
 from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from .serializers import URLSerializer, URLCreateSerializer, URLListSerializer
+
+
+from analytics.utils import parse_user_agent, ip_to_location
 
 def redirect_link(request, identifier: str):
     """
@@ -27,6 +33,7 @@ def redirect_link(request, identifier: str):
         - Increment click_count.
         - Redirect to original_url.
     """
+     # Reserved identifiers check
     if identifier.lower() in RESERVED_IDENTIFIERS:
         return HttpResponseNotFound("Not found.")
 
@@ -41,22 +48,38 @@ def redirect_link(request, identifier: str):
     if link.is_expired():
         return HttpResponseNotFound("This link has expired or is inactive.")
 
+    # Basic request metadata
     ip = request.META.get('REMOTE_ADDR')
-    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    raw_user_agent = request.META.get('HTTP_USER_AGENT', '')
     now = timezone.now()
 
+    # Parse user agent
+    ua_info = parse_user_agent(raw_user_agent)
+    device_type = ua_info['device_type']
+    browser = ua_info['browser']
+    # os = ua_info['os']  # we can store later if needed
+
+    # GeoIP lookup
+    location = ip_to_location(ip)
+    country = location['country']
+    city = location['city']
+
+    # Record click with enriched data
     Click.objects.create(
         url=link,
         clicked_at=now,
         ip_address=ip,
-        user_agent=user_agent,
-        # country, city, device_type, browser will be filled later via analytics pipeline
+        user_agent=raw_user_agent,
+        country=country,
+        city=city,
+        device_type=device_type,
+        browser=browser,
     )
 
+    # Increment cached click_count
     link.click_count = link.click_count + 1
     link.save(update_fields=['click_count'])
 
-    # Redirect to original URL
     return HttpResponseRedirect(link.original_url)
 
 class URLViewSet(viewsets.ModelViewSet):
@@ -75,13 +98,6 @@ class URLViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_serializer_class(self):
-        """
-        Choose serializer based on action.
-
-        - list    → URLListSerializer (compact)
-        - create  → URLCreateSerializer (simple input)
-        - others  → URLSerializer (full detail)
-        """
         if self.action == 'list':
             return URLListSerializer
         if self.action == 'create':
@@ -89,9 +105,70 @@ class URLViewSet(viewsets.ModelViewSet):
         return URLSerializer
 
     def perform_create(self, serializer):
-        """
-        Hook called after serializer.is_valid(), before saving.
-
-        We pass the owner into serializer.create() via save().
-        """
         serializer.save(owner=self.request.user)
+
+    @action(detail=True, methods=['get'], url_path='analytics')
+    def analytics(self, request, pk=None):
+        """
+        Analytics endpoint for a single URL.
+
+        GET /api/urls/{id}/analytics/
+
+        Returns:
+        - total_clicks
+        - clicks_over_time (daily)
+        - top_countries
+        - top_devices
+        - top_browsers
+        """
+        try:
+            link = self.get_queryset().get(pk=pk)
+        except Link.DoesNotExist:
+            return Response({'detail': 'Link not found.'}, status=404)
+
+        # Only allow owner to see analytics (you can relax this later if needed)
+        if link.owner != request.user:
+            return Response({'detail': 'Not allowed.'}, status=403)
+
+        qs = Click.objects.filter(url=link)
+
+        # Total clicks
+        total_clicks = qs.count()
+
+        # Clicks over time (daily counts)
+        by_day = (
+            qs.annotate(day=TruncDate('clicked_at'))
+              .values('day')
+              .annotate(count=Count('id'))
+              .order_by('day')
+        )
+
+        # Top countries
+        by_country = (
+            qs.values('country')
+              .annotate(count=Count('id'))
+              .order_by('-count')
+        )
+
+        # Top devices
+        by_device = (
+            qs.values('device_type')
+              .annotate(count=Count('id'))
+              .order_by('-count')
+        )
+
+        # Top browsers
+        by_browser = (
+            qs.values('browser')
+              .annotate(count=Count('id'))
+              .order_by('-count')
+        )
+
+        data = {
+            'total_clicks': total_clicks,
+            'clicks_over_time': list(by_day),
+            'top_countries': list(by_country),
+            'top_devices': list(by_device),
+            'top_browsers': list(by_browser),
+        }
+        return Response(data)
