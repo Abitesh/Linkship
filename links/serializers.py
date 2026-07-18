@@ -54,12 +54,16 @@ class URLCreateSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         request = self.context['request']
-        return create_short_link(
-            owner=request.user,
-            original_url=validated_data['original_url'],
-            custom_alias=validated_data.get('custom_alias'),
-            expires_at=validated_data.get('expires_at'),
-        )
+        try:
+            return create_short_link(
+                owner=request.user,
+                original_url=validated_data['original_url'],
+                custom_alias=validated_data.get('custom_alias'),
+                expires_at=validated_data.get('expires_at'),
+            )
+        except ValueError as e:
+            # Translates the core Python error into a DRF HTTP 400 error
+            raise serializers.ValidationError({"custom_alias": str(e)})
 
     def to_representation(self, instance):
         return URLSerializer(instance, context=self.context).data
