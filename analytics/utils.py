@@ -5,6 +5,15 @@ from django.conf import settings
 
 _geoip_reader = None
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        # The header contains a list of IPs, the first one is the client's
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
 def parse_user_agent(ua_string: str) -> dict:
     """
     Parse a raw user agent string into structured info.
@@ -72,6 +81,19 @@ def ip_to_location(ip_address: str) -> dict:
         return {
             'country': 'unknown',
             'city': 'unknown',
+        }
+    
+    is_private = (
+        ip_address.startswith('127.') or 
+        ip_address.startswith('10.') or 
+        ip_address.startswith('192.168.') or
+        (ip_address.startswith('100.') and 64 <= int(ip_address.split('.')[1]) <= 127)
+    )
+
+    if is_private:
+        return {
+            'country': 'local',
+            'city': 'local',
         }
 
     # Simple check for localhost/private ranges
