@@ -9,6 +9,45 @@ from django.core.cache import cache
 
 BASE62_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
+from urllib.parse import urlparse
+from django.core.exceptions import ValidationError
+from django.core.validators import URLValidator
+
+def validate_original_url(url: str) -> str:
+    """
+    Validates the URL format and prevents malicious/internal routing.
+    """
+    # 1. Basic format validation (Forces HTTP/HTTPS, blocks javascript: or file: schemes)
+    validator = URLValidator(schemes=['http', 'https'])
+    try:
+        validator(url)
+    except ValidationError:
+        raise ValueError("Invalid URL format. Must start with http:// or https://")
+
+    # 2. Parse the URL to inspect the domain
+    parsed = urlparse(url)
+    hostname = parsed.hostname.lower() if parsed.hostname else ''
+
+    # 3. Security: Prevent SSRF (Server-Side Request Forgery)
+    forbidden_hosts = [
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0',
+        '[::1]',
+    ]
+    # Block loopback and standard private IP ranges
+    if (hostname in forbidden_hosts or 
+        hostname.startswith('192.168.') or 
+        hostname.startswith('10.') or
+        hostname.startswith('172.')):
+        raise ValueError("Internal, private, or local URLs are strictly forbidden.")
+
+    # 4. Security: Prevent recursive shortening (Loop prevention)
+    # Replace with your actual live domain to prevent infinite redirect loops
+    if 'linkship-production.up.railway.app' in hostname:
+        raise ValueError("Recursive shortening is not allowed. You cannot shorten a Linkship URL.")
+
+    return url
 
 def encode_base62(number: int) -> str:
     """
