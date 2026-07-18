@@ -9,6 +9,11 @@ from .serializers import RegisterSerializer, UserSerializer
 
 from .models import User
 
+from django.shortcuts import render, redirect
+from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+
 def get_tokens_for_user(user: User) -> dict:
     """
     Helper: generate refresh + access tokens for a given user.
@@ -46,3 +51,21 @@ class RegisterView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+    
+# --- HTML WEB VIEWS ---
+def register(request):
+    # This will render the HTML registration form later
+    return render(request, 'users/register.html', {'title': 'Register'})
+
+@login_required
+def profile(request):
+    # This will render the HTML profile page later
+    return render(request, 'users/profile.html', {'title': 'Profile'})
+
+def logout_view(request):
+    """
+    Safely terminates the user session and redirects to the home page.
+    """
+    logout(request)
+    messages.success(request, "You have been successfully logged out.")
+    return redirect('links-home')
