@@ -2,7 +2,6 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
-
 class Link(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
