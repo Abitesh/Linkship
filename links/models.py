@@ -1,4 +1,3 @@
-# links/models.py
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -56,6 +55,13 @@ class Link(models.Model):
     click_count = models.PositiveIntegerField(
         default=0,
         help_text='Cached total number of clicks for quick access.'
+    )
+
+    qr_code_image = models.ImageField(
+        upload_to='qr_codes/',
+        null=True,
+        blank=True,
+        help_text='Generated QR code image pointing to this short link.'
     )
 
     class Meta:
