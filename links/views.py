@@ -17,6 +17,8 @@ from rest_framework import status
 
 from analytics.utils import parse_user_agent, ip_to_location
 
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+
 def redirect_link(request, identifier: str):
     """
     Redirect endpoint: GET /<identifier>
@@ -107,6 +109,12 @@ class URLViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def get_throttles(self):
+        # Apply throttling only for create action
+        if self.action == 'create':
+            return [UserRateThrottle(), AnonRateThrottle()]
+        return []
 
     @action(detail=True, methods=['get'], url_path='analytics')
     def analytics(self, request, pk=None):
