@@ -34,8 +34,7 @@
                             <a class="nav-item nav-link" href="{% url 'profile' %}">Profile</a>
                             <a class="nav-item nav-link" href="{% url 'logout' %}">Logout</a>
                         {% else %}
-                            <!-- Directs to Django Admin Login as requested -->
-                            <a class="nav-item nav-link" href="{% url 'admin:login' %}">Login</a>
+                            <a class="nav-item nav-link" href="{% url 'login' %}">Login</a>
                             <a class="nav-item nav-link" href="{% url 'register' %}">Register</a>
                         {% endif %}
                     </div>
