@@ -22,6 +22,8 @@ from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from django.core.cache import cache
 from links.utils import make_redirect_cache_key, REDIRECT_CACHE_TTL
 
+from django.shortcuts import render
+
 def redirect_link(request, identifier: str):
     """
     Redirect endpoint: GET /<identifier>
@@ -288,3 +290,12 @@ class URLViewSet(viewsets.ModelViewSet):
             cache.delete(make_redirect_cache_key(ident))
         instance.delete()
     
+
+# HTML 
+def home(request):
+    """ Renders the main Linkship landing page """
+    return render(request, 'links/home.html', {'title': 'Home'})
+
+def about(request):
+    """ Renders the About page """
+    return render(request, 'links/about.html', {'title': 'About'})
