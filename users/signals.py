@@ -10,4 +10,6 @@ def create_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def save_profile(sender, instance, **kwargs):
-    instance.profile.save()
+    # Only try to save the profile if it actually exists
+    if hasattr(instance, 'profile'):
+        instance.profile.save()

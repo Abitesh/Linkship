@@ -88,6 +88,8 @@ def logout_view(request):
     messages.success(request, "You have been successfully logged out.")
     return redirect('links-home')
 
+from .models import Profile
+
 @login_required
 def profile(request):
     # Use get_or_create to ensure the profile exists
