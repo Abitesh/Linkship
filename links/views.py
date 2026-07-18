@@ -172,7 +172,27 @@ class URLViewSet(viewsets.ModelViewSet):
 
         # Only allow owner to see analytics (you can relax this later if needed)
         if link.owner != request.user:
+            cache_key = f'link_analytics:{link.id}'
+            cached_data = cache.get(cache_key)
+
+            if cached_data is not None:
+                return Response(cached_data)
             return Response({'detail': 'Not allowed.'}, status=403)
+        
+
+        try:
+            link = self.get_queryset().get(pk=pk)
+        except Link.DoesNotExist:
+            return Response({'detail': 'Link not found.'}, status=404)
+
+        if link.owner != request.user:
+            return Response({'detail': 'Not allowed.'}, status=403)
+
+        cache_key = f'link_analytics:{link.id}'
+        cached_data = cache.get(cache_key)
+
+        if cached_data is not None:
+            return Response(cached_data)
 
         qs = Click.objects.filter(url=link)
 
@@ -215,6 +235,8 @@ class URLViewSet(viewsets.ModelViewSet):
             'top_devices': list(by_device),
             'top_browsers': list(by_browser),
         }
+
+        cache.set(cache_key, data, 60 * 5)  # 5 minutes
         return Response(data)
     
     queryset = Link.objects.select_related('owner').all()
