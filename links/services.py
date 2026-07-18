@@ -6,8 +6,9 @@ from .utils import (
     validate_custom_alias,
     generate_short_code,
 )
+from .qr_utils import generate_qr_for_link
 
-  
+
 def create_short_link(*, owner, original_url: str, custom_alias: str | None = None, expires_at=None) -> Link:
     """
     Create a new short link safely.
@@ -17,6 +18,7 @@ def create_short_link(*, owner, original_url: str, custom_alias: str | None = No
     - optional custom alias validation
     - unique generated short code
     - collision checks
+    - QR code generation
     """
     validated_url = validate_original_url(original_url)
 
@@ -37,4 +39,7 @@ def create_short_link(*, owner, original_url: str, custom_alias: str | None = No
         link.short_code = short_code
         link.save(update_fields=['short_code'])
 
-        return link
+    # Outside transaction: generate QR image file
+    generate_qr_for_link(link)
+
+    return link
