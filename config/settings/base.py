@@ -5,7 +5,7 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-insecure-key')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -117,6 +117,7 @@ DATABASES = {
     }
 }
 
+CSRF_TRUSTED_ORIGINS = ['https://linkship-production.up.railway.app']
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
