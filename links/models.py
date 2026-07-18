@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+import uuid
 
 class Link(models.Model):
     owner = models.ForeignKey(
@@ -24,6 +25,11 @@ class Link(models.Model):
     blank=True,
     help_text='Automatically generated Base62 short code.'
     )
+    def save(self, *args, **kwargs):
+        # If no short_code is provided, generate a unique one
+        if not self.short_code:
+            self.short_code = uuid.uuid4().hex[:4].upper()
+        super().save(*args, **kwargs)
 
     # Optional custom alias chosen by user
     custom_alias = models.CharField(

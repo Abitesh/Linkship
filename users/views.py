@@ -87,3 +87,27 @@ def logout_view(request):
     logout(request)
     messages.success(request, "You have been successfully logged out.")
     return redirect('links-home')
+
+@login_required
+def profile(request):
+    # Use get_or_create to ensure the profile exists
+    profile, created = Profile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        u_form = UserUpdateForm(request.POST, instance=request.user)
+        p_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile) # Use the 'profile' variable
+        if u_form.is_valid() and p_form.is_valid():
+            u_form.save()
+            p_form.save()
+            messages.success(request, 'Your account has been updated!')
+            return redirect('profile')
+    else:
+        u_form = UserUpdateForm(instance=request.user)
+        p_form = ProfileUpdateForm(instance=profile) # Use the 'profile' variable
+
+    context = {
+        'u_form': u_form,
+        'p_form': p_form,
+        'title': 'Profile'
+    }
+    return render(request, 'users/profile.html', context)

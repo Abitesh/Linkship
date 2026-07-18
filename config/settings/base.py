@@ -98,7 +98,7 @@ SIMPLE_JWT = {
     # Defaults use SECRET_KEY as signing key; that’s fine for your project.[web:228][web:229]
 }
 
-AUTH_USER_MODEL = 'users.User'
+
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
