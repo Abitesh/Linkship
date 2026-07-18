@@ -19,6 +19,9 @@ from analytics.utils import parse_user_agent, ip_to_location
 
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 
+from django.core.cache import cache
+from links.utils import make_redirect_cache_key, REDIRECT_CACHE_TTL
+
 def redirect_link(request, identifier: str):
     """
     Redirect endpoint: GET /<identifier>
@@ -40,15 +43,47 @@ def redirect_link(request, identifier: str):
     if identifier.lower() in RESERVED_IDENTIFIERS:
         return HttpResponseNotFound("Not found.")
 
-    link = (
-        Link.objects.filter(short_code=identifier).first()
-        or Link.objects.filter(custom_alias=identifier).first()
-    )
+    cache_key = make_redirect_cache_key(identifier)
+    cached = cache.get(cache_key)
 
-    if link is None:
-        return HttpResponseNotFound("Short link not found.")
+    if cached:
+        if cached.get('expired'):
+            return HttpResponseNotFound("This link has expired or is inactive.")
+
+        try:
+            link = Link.objects.get(id=cached['link_id'])
+        except Link.DoesNotExist:
+            cache.delete(cache_key)
+            return HttpResponseNotFound("Short link not found.")
+    else:
+        link = (
+            Link.objects.filter(short_code=identifier).first()
+            or Link.objects.filter(custom_alias=identifier).first()
+        )
+
+        if link is None:
+            return HttpResponseNotFound("Short link not found.")
+
+        cache.set(
+            cache_key,
+            {
+                'link_id': link.id,
+                'original_url': link.original_url,
+                'expired': link.is_expired(),
+            },
+            REDIRECT_CACHE_TTL,
+        )
 
     if link.is_expired():
+        cache.set(
+            cache_key,
+            {
+                'link_id': link.id,
+                'original_url': link.original_url,
+                'expired': True,
+            },
+            REDIRECT_CACHE_TTL,
+        )
         return HttpResponseNotFound("This link has expired or is inactive.")
 
     # Basic request metadata
@@ -209,4 +244,25 @@ class URLViewSet(viewsets.ModelViewSet):
         response = FileResponse(qr_file, content_type='image/png')
         response['Content-Disposition'] = f'attachment; filename="link_{link.id}_qr.png"'
         return response
+    
+    def perform_update(self, serializer):
+        link = serializer.save()
+        # Invalidate cache for short_code and custom_alias
+        identifiers = []
+        if link.short_code:
+            identifiers.append(link.short_code)
+        if link.custom_alias:
+            identifiers.append(link.custom_alias)
+        for ident in identifiers:
+            cache.delete(make_redirect_cache_key(ident))
+
+    def perform_destroy(self, instance):
+        identifiers = []
+        if instance.short_code:
+            identifiers.append(instance.short_code)
+        if instance.custom_alias:
+            identifiers.append(instance.custom_alias)
+        for ident in identifiers:
+            cache.delete(make_redirect_cache_key(ident))
+        instance.delete()
     

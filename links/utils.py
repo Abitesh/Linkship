@@ -5,6 +5,8 @@ from django.db.models import Q
 
 from .models import Link
 
+from django.core.cache import cache
+
 BASE62_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
 
@@ -156,3 +158,12 @@ def generate_short_code(link_id: int, max_attempts: int = 5) -> str:
             return candidate
 
     raise ValueError('Unable to generate a unique short code after multiple attempts.')
+
+
+
+
+REDIRECT_CACHE_TTL = 60 * 60  # 1 hour
+
+
+def make_redirect_cache_key(identifier: str) -> str:
+    return f'link_redirect:{identifier}'
