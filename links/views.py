@@ -134,8 +134,22 @@ class URLViewSet(viewsets.ModelViewSet):
     - PATCH  /api/urls/{id}/      → partial_update (URLSerializer)
     - DELETE /api/urls/{id}/      → destroy
     """
-    queryset = Link.objects.select_related('owner').all()
+    
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filters the database so the dashboard only returns links 
+        owned by the currently authenticated user.
+        """
+        return Link.objects.filter(owner=self.request.user).select_related('owner').order_by('-created_at')
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return URLListSerializer
+        if self.action == 'create':
+            return URLCreateSerializer
+        return URLSerializer
 
     def get_serializer_class(self):
         if self.action == 'list':
