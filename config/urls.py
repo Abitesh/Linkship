@@ -1,24 +1,34 @@
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from django.conf import settings
+from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from links.views import redirect_link  # your redirect view
-
-from django.views.generic import TemplateView
+from links.views import redirect_link 
 
 urlpatterns = [
+    # 1. Admin Panel
     path('admin/', admin.site.urls),
-    path('api/', include('links.api_urls')),  
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 
-    path('api/', include('users.urls')),
-    path('api/auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # 2. Web Frontend
+    path('', include('links.urls')),       # Sends '' and 'about/' to links app
+    path('users/', include('users.urls')), # Sends 'register/', 'login/', etc. to users app
+
+    # 3. Password Reset (Web)
+    path('password-reset/', auth_views.PasswordResetView.as_view(template_name='users/password_reset.html'), name='password_reset'),
+    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='users/password_reset_done.html'), name='password_reset_done'),
+    path('password-reset-confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='users/password_reset_confirm.html'), name='password_reset_confirm'),
+    path('password-reset-complete/', auth_views.PasswordResetCompleteView.as_view(template_name='users/password_reset_complete.html'), name='password_reset_complete'),
+
+    # 4. API Backend 
+    path('api/links/', include('links.api_urls')),  
+    path('api/auth/jwt/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/auth/jwt/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # 5. Short Link Redirect 
     path('<str:identifier>/', redirect_link, name='redirect_link'),
-
-    path('', TemplateView.as_view(template_name='home.html'), name='home'),
-    path('about/', TemplateView.as_view(template_name='about.html'), name='about'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
