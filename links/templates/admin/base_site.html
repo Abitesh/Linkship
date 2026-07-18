@@ -1,9 +1,53 @@
 {% extends "admin/base.html" %}
 
-{% block branding %}
-<h1 id="site-name"><a href="{% url 'admin:index' %}">Linkship Administration Panel</a></h1>
+{% block extrastyle %}
+    {{ block.super }}
+    <!-- 1. Injecting Bootstrap strictly for the Navbar -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css">
+    <style>
+        /* 2. Push the admin content down so the fixed navbar doesn't cover the page */
+        #container { 
+            margin-top: 70px !important; 
+        }
+        /* 3. Protect Django's default link colors from being overwritten by Bootstrap */
+        #content a {
+            color: #447e9b;
+        }
+        #content a:hover {
+            color: #036;
+        }
+    </style>
 {% endblock %}
 
-{% block nav-global %}
-<!-- You can add custom links to the top of the admin panel here -->
+{% block extrahead %}
+    {{ block.super }}
+    <!-- Injecting Bootstrap JS for the mobile hamburger menu -->
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"></script>
+{% endblock %}
+
+<!-- 4. Override the default Django Admin Header entirely -->
+{% block header %}
+    <header class="site-header">
+        <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+            <div class="container">
+                <a class="navbar-brand mr-4" href="{% url 'links-home' %}">Linkship</a>
+                <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarToggle">
+                    <div class="navbar-nav mr-auto">
+                        <a class="nav-item nav-link" href="{% url 'links-home' %}">Home</a>
+                        <a class="nav-item nav-link" href="{% url 'links-about' %}">About</a>
+                    </div>
+                    <div class="navbar-nav">
+                        <!-- Shows the logged-in admin's name -->
+                        <span class="nav-item nav-link text-info">Admin: {{ user.username }}</span>
+                        <a class="nav-item nav-link" href="{% url 'admin:index' %}">Dashboard</a>
+                        <a class="nav-item nav-link" href="{% url 'admin:logout' %}">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
 {% endblock %}
