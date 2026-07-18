@@ -1,49 +1,65 @@
-from django.contrib.auth import get_user_model
-from rest_framework import status
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
-
-from .serializers import RegisterSerializer, UserSerializer
-
-User = get_user_model()
+from rest_framework import serializers
+from .models import Link
+from .services import create_short_link
 
 
-def get_tokens_for_user(user: User) -> dict:
-    """
-    Helper: generate refresh + access tokens for a given user.
-    """
-    refresh = RefreshToken.for_user(user)  # SimpleJWT helper[web:223][web:229]
-    return {
-        'refresh': str(refresh),
-        'access': str(refresh.access_token),
-    }
+class URLSerializer(serializers.ModelSerializer):
+    full_short_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Link
+        fields = [
+            'id',
+            'original_url',
+            'short_code',
+            'custom_alias',
+            'full_short_url',
+            'click_count',
+            'created_at',
+            'expires_at',
+            'is_active',
+            'qr_code_image',
+        ]
+        read_only_fields = ['id', 'short_code', 'click_count', 'created_at', 'qr_code_image']
+
+    def get_full_short_url(self, obj):
+        return obj.get_full_short_url()
 
 
-class RegisterView(APIView):
-    """
-    POST /api/auth/register/
+class URLListSerializer(serializers.ModelSerializer):
+    full_short_url = serializers.SerializerMethodField()
 
-    Registers a new user and returns:
-    - user data
-    - JWT access + refresh tokens
-    """
+    class Meta:
+        model = Link
+        fields = [
+            'id',
+            'short_code',
+            'custom_alias',
+            'full_short_url',
+            'click_count',
+            'created_at',
+            'expires_at',
+            'is_active',
+            'qr_code_image',
+        ]
 
-    permission_classes = [AllowAny]
+    def get_full_short_url(self, obj):
+        return obj.get_full_short_url()
 
-    def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
 
-        user_data = UserSerializer(user).data
-        tokens = get_tokens_for_user(user)
+class URLCreateSerializer(serializers.Serializer):
+    original_url = serializers.URLField()
+    custom_alias = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    expires_at = serializers.DateTimeField(required=False, allow_null=True)
 
-        return Response(
-            {
-                'user': user_data,
-                'tokens': tokens,
-            },
-            status=status.HTTP_201_CREATED,
+    def create(self, validated_data):
+        request = self.context['request']
+        return create_short_link(
+            owner=request.user,
+            original_url=validated_data['original_url'],
+            custom_alias=validated_data.get('custom_alias'),
+            expires_at=validated_data.get('expires_at'),
         )
+
+    def to_representation(self, instance):
+        return URLSerializer(instance, context=self.context).data

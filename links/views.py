@@ -12,7 +12,8 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-
+from django.http import FileResponse, Http404
+from rest_framework import status
 
 from analytics.utils import parse_user_agent, ip_to_location
 
@@ -172,4 +173,32 @@ class URLViewSet(viewsets.ModelViewSet):
             'top_browsers': list(by_browser),
         }
         return Response(data)
+    
+    queryset = Link.objects.select_related('owner').all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def qr(self, request, pk=None):
+        """
+        GET /api/urls/{id}/qr/
+
+        Returns the QR code image file for this URL.
+
+        - Requires authentication and ownership.
+        - Sets Content-Disposition so browsers can download.
+        """
+        try:
+            link = self.get_queryset().get(pk=pk)
+        except Link.DoesNotExist:
+            raise Http404("Link not found.")
+
+        if link.owner != request.user:
+            return Response({'detail': 'Not allowed.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if not link.qr_code_image:
+            return Response({'detail': 'QR code not generated.'}, status=status.HTTP_404_NOT_FOUND)
+
+        qr_file = link.qr_code_image.open('rb')
+        response = FileResponse(qr_file, content_type='image/png')
+        response['Content-Disposition'] = f'attachment; filename="link_{link.id}_qr.png"'
+        return response
     
