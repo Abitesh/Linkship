@@ -17,4 +17,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 6. Copy the rest of your project (all your code) into the Linux box
 COPY . /app/
 
-RUN python manage.py collectstatic --noinput
+RUN python manage.py collectstatic --noinput --settings=config.settings.production
