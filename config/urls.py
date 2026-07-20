@@ -7,6 +7,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from links.views import redirect_link 
 
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+
 urlpatterns = [
     # 1. Admin Panel
     path('admin/', admin.site.urls),
@@ -28,6 +30,15 @@ urlpatterns = [
 
     # 5. Short Link Redirect 
     path('<str:identifier>/', redirect_link, name='redirect_link'),
+
+    # OpenAPI Schema Generation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    
+    # Interactive Swagger UI: http://127.0.0.1:8000/api/docs/
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    
+    # Alternative Redoc UI: http://127.0.0.1:8000/api/redoc/
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
 if settings.DEBUG:

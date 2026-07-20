@@ -27,3 +27,8 @@ Pillow==12.3.0
 user-agents==2.2.0
 geoip2==5.2.0
 requests==2.34.2
+
+django-crispy-forms>=2.0
+crispy-bootstrap5>=0.7
+
+drf-spectacular

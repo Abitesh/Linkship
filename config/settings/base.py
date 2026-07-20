@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'rest_framework_simplejwt',
+    'drf_spectacular',
 
     #Apps inside project
     'core',
@@ -85,6 +86,14 @@ REST_FRAMEWORK = {
         'user': '100/hour',   # authenticated user: 100 creations/hour target
         'anon': '10/hour',    # anonymous: 10 creations/hour target
     },
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Linkship API',
+    'DESCRIPTION': 'API documentation for the Linkship URL Shortener',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
 }
 
 from datetime import timedelta

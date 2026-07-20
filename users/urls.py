@@ -8,9 +8,10 @@ urlpatterns = [
     path('profile/', views.profile, name='profile'),
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     
-    # Using the exact logout view from your previous project
+
     path('logout/', views.logout_view, name='logout'),
 
-    # API Route (Preserved from your previous work)
+
+    # API Route 
     path('api/register/', views.RegisterView.as_view(), name='api-register'),
 ]

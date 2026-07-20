@@ -14,7 +14,7 @@ from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import UserUpdateForm, ProfileUpdateForm 
-
+from .forms import UserRegisterForm
 
 def get_tokens_for_user(user: User) -> dict:
     """
@@ -113,3 +113,15 @@ def profile(request):
         'title': 'Profile'
     }
     return render(request, 'users/profile.html', context)
+
+def register(request):
+    if request.method == 'POST':
+        form = UserRegisterForm(request.POST)
+        if form.is_valid():
+            form.save()
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Your account has been created! You are now able to log in, {username}!')
+            return redirect('login') # Ensure you have a 'login' URL name defined
+    else:
+        form = UserRegisterForm()
+    return render(request, 'users/register.html', {'form': form})
