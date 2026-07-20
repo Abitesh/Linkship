@@ -20,7 +20,12 @@
 
 ## 📸 Preview
 
-> _()_
+> _(
+<img width="1709" height="945" alt="Screenshot 2026-07-20 at 9 38 02 AM" src="https://github.com/user-attachments/assets/92a9d649-2b8d-4588-b101-71490b3ce5dd" />
+
+<img width="1709" height="945" alt="Screenshot 2026-07-20 at 9 43 41 AM" src="https://github.com/user-attachments/assets/35bfb071-9983-45ea-8166-be40f4d0b4de" />
+
+)_
 
 ---
 
