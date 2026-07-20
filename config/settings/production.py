@@ -23,6 +23,7 @@ CELERY_BROKER_URL = REDIS_URL
 
 # Whitenoise is CRITICAL for production
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware', # Ensure this is here
     'django.contrib.sessions.middleware.SessionMiddleware',
