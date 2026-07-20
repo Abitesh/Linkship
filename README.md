@@ -20,7 +20,7 @@
 
 ## 📸 Preview
 
-> _(Add a screenshot or GIF of your dashboard here — drag & drop an image into this file on GitHub)_
+> _()_
 
 ---
 
