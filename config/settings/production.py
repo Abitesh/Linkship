@@ -2,7 +2,7 @@ import os
 import dj_database_url
 from .base import *
 
-DEBUG = True
+DEBUG = False
 ALLOWED_HOSTS = ['*']
 
 # Ensure these settings are present
@@ -20,6 +20,7 @@ CACHES = {
     }
 }
 CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 
 # Whitenoise is CRITICAL for production
 MIDDLEWARE = [

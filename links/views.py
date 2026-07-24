@@ -99,11 +99,11 @@ def redirect_link(request, identifier: str):
     ip = get_client_ip(request)
     raw_user_agent = request.META.get('HTTP_USER_AGENT', '')
 
-    record_click_task.delay(
-        link_id=link.id,
-        ip=ip,
-        raw_user_agent=raw_user_agent,
-    )
+    # record_click_task.delay(
+    #     link_id=link.id,
+    #     ip=ip,
+    #     raw_user_agent=raw_user_agent,
+    # )
 
 
     return HttpResponseRedirect(link.original_url)

@@ -5,18 +5,15 @@ from celery import Celery
 
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
-    "config.settings.local"
+    os.environ.get("DJANGO_SETTINGS_MODULE", "config.settings.production")
 )
 
-app = Celery('linksnip')
+app = Celery("linksnip")
 
-# Read CELERY_* settings from Django settings
-app.config_from_object('django.conf:settings', namespace='CELERY')
-
-# Autodiscover tasks.py in all installed apps
+app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()
 
 
 @app.task(bind=True)
 def debug_task(self):
-    print(f'Request: {self.request!r}')
+    print(f"Request: {self.request!r}")
