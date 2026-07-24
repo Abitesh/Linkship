@@ -14,7 +14,7 @@ class AuthenticationTests(APITestCase):
     
     def setUp(self):
         # Reverse lookup ensures we don't hardcode URL strings
-        self.register_url = reverse('auth_register') 
+        self.register_url = reverse('api-register') 
         self.valid_user_payload = {
             'username': 'testengineer',
             'email': 'engineer@example.com',
@@ -39,3 +39,46 @@ class AuthenticationTests(APITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(User.objects.count(), 1) # Count should not increase
+
+from rest_framework.test import APITestCase, APIClient
+from rest_framework import status
+from django.contrib.auth import get_user_model
+
+
+User = get_user_model()
+
+@override_settings(
+    CACHES={
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
+)
+class JwtAuthTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="jwtuser",
+            email="jwt@example.com",
+            password="pw123",
+        )
+        self.client = APIClient()
+
+    def test_obtain_jwt_and_access_protected_endpoint(self):
+        """User should obtain JWT and use it to access /api/urls/."""
+        # Adjust URL to your JWT login path
+        login_url = "/api/auth/jwt/login/"
+
+        response = self.client.post(
+            login_url,
+            {"username": "jwtuser", "password": "pw123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        access = response.data.get("access")
+        self.assertIsNotNone(access)
+
+        # Now call a protected endpoint
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        urls_response = self.client.get("/api/links/urls/")
+        # Depending on your router, adjust the path to /api/links/ if needed.
+        self.assertIn(urls_response.status_code, (status.HTTP_200_OK, status.HTTP_204_NO_CONTENT))
