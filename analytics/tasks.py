@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from config.celery import shared_task
+from celery import shared_task
 from django.utils import timezone
 
 from analytics.models import Click
 from links.models import Link
 from analytics.utils import parse_user_agent, ip_to_location
 
+from django.db.models import F
+
 
 @shared_task
-def record_click_task(link_id: int, ip: str | None, raw_user_agent: str | None, clicked_at_iso: str | None):
+def record_click_task(link_id: int, ip: str | None, raw_user_agent: str | None):
     """
     Asynchronous task to record a click event with enrichment.
 
@@ -26,13 +28,6 @@ def record_click_task(link_id: int, ip: str | None, raw_user_agent: str | None, 
 
     # Parse timestamp back from ISO if provided, otherwise use now
     clicked_at = timezone.now()
-    if clicked_at_iso:
-        try:
-            clicked_at = timezone.datetime.fromisoformat(clicked_at_iso)
-            if timezone.is_naive(clicked_at):
-                clicked_at = timezone.make_aware(clicked_at)
-        except Exception:
-            clicked_at = timezone.now()
 
     ua_info = parse_user_agent(raw_user_agent or '')
     device_type = ua_info['device_type']
@@ -52,6 +47,10 @@ def record_click_task(link_id: int, ip: str | None, raw_user_agent: str | None, 
         device_type=device_type,
         browser=browser,
     )
+    Link.objects.filter(id=link_id).update(
+        click_count=F('click_count') + 1
+    )
+
 
     # OPTIONAL: if you want click_count to reflect async events too,
     # you could increment here instead of in the view.
