@@ -2,7 +2,6 @@ from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django.utils import timezone
 
 from .models import Link
-from analytics.models import Click
 from links.utils import RESERVED_IDENTIFIERS
 from .serializers import URLSerializer, URLCreateSerializer, URLListSerializer
 
@@ -15,7 +14,10 @@ from rest_framework.response import Response
 from django.http import FileResponse, Http404
 from rest_framework import status
 
-from analytics.utils import parse_user_agent, ip_to_location
+
+from analytics.models import Click
+from analytics.utils import get_client_ip
+from analytics.tasks import record_click_task
 
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 
@@ -94,37 +96,15 @@ def redirect_link(request, identifier: str):
         )
         return HttpResponseNotFound("This link has expired or is inactive.")
 
-    # Basic request metadata
-    ip = request.META.get('REMOTE_ADDR')
+    ip = get_client_ip(request)
     raw_user_agent = request.META.get('HTTP_USER_AGENT', '')
-    now = timezone.now()
 
-    # Parse user agent
-    ua_info = parse_user_agent(raw_user_agent)
-    device_type = ua_info['device_type']
-    browser = ua_info['browser']
-    # os = ua_info['os']  # we can store later if needed
-
-    # GeoIP lookup
-    location = ip_to_location(ip)
-    country = location['country']
-    city = location['city']
-
-    # Record click with enriched data
-    Click.objects.create(
-        url=link,
-        clicked_at=now,
-        ip_address=ip,
-        user_agent=raw_user_agent,
-        country=country,
-        city=city,
-        device_type=device_type,
-        browser=browser,
+    record_click_task.delay(
+        link_id=link.id,
+        ip=ip,
+        raw_user_agent=raw_user_agent,
     )
 
-    # Increment cached click_count
-    link.click_count = link.click_count + 1
-    link.save(update_fields=['click_count'])
 
     return HttpResponseRedirect(link.original_url)
 
@@ -264,6 +244,7 @@ class URLViewSet(viewsets.ModelViewSet):
     queryset = Link.objects.select_related('owner').all()
     permission_classes = [permissions.IsAuthenticated]
 
+    @action(detail=True, methods=["get"], url_path="qr")
     def qr(self, request, pk=None):
         """
         GET /api/urls/{id}/qr/
