@@ -3,8 +3,8 @@ import os
 SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-insecure-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
-
+DEBUG =  'True'
+#os.environ.get('DEBUG', 'False') ==
 ALLOWED_HOSTS = ['*']
 
 import sys
